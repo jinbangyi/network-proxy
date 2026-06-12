@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "network"
+name = "network-proxy"
 version = "0.1.0"
 description = ""
 authors = ["benny"]

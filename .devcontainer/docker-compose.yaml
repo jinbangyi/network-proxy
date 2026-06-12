@@ -1,0 +1,36 @@
+# version: '3.8'  # Optional, Docker Compose v2+ ignores version
+name: ${SERVICE_NAME}
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: ${SERVICE_NAME}-app
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "${APP_PORT}:8080"
+    # Use env_file to load environment variables from .env.local (in project root)
+    env_file:
+      - ../.env.local
+    volumes:
+      - db-data:/app/prisma
+    # Health check for development server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
+    name: ${SERVICE_NAME}-network
+
+volumes:
+  db-data:
+    name: ${SERVICE_NAME}-db-data
