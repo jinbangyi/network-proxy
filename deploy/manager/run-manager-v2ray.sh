@@ -1,0 +1,49 @@
+#!/bin/sh
+set -eu
+
+CONFIG_PATH=${NETWORK_PROXY_MANAGER_RELAY_CONFIG_FILE:-/app/data/manager-v2ray-config.json}
+POLL_SECONDS=${NETWORK_PROXY_MANAGER_RELAY_POLL_SECONDS:-2}
+
+mkdir -p "$(dirname "$CONFIG_PATH")"
+
+runner_pid=""
+last_config_stamp=""
+
+stop_runner() {
+  if [ -n "$runner_pid" ] && kill -0 "$runner_pid" 2>/dev/null; then
+    kill "$runner_pid" 2>/dev/null || true
+    wait "$runner_pid" 2>/dev/null || true
+  fi
+  runner_pid=""
+}
+
+start_runner() {
+  if [ ! -s "$CONFIG_PATH" ]; then
+    return
+  fi
+  v2ray run -config "$CONFIG_PATH" &
+  runner_pid=$!
+}
+
+trap 'stop_runner; exit 0' INT TERM
+
+while :; do
+  if [ -e "$CONFIG_PATH" ]; then
+    config_stamp=$(stat -c %Y "$CONFIG_PATH")
+  else
+    config_stamp="missing"
+  fi
+
+  if [ "$config_stamp" != "$last_config_stamp" ]; then
+    stop_runner
+    start_runner
+    last_config_stamp="$config_stamp"
+  fi
+
+  if [ -n "$runner_pid" ] && ! kill -0 "$runner_pid" 2>/dev/null; then
+    wait "$runner_pid" 2>/dev/null || true
+    runner_pid=""
+  fi
+
+  sleep "$POLL_SECONDS"
+done

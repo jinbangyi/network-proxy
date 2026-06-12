@@ -33,20 +33,26 @@ TODO: Add a brief project description here.
 │       └── Your Org Repo2/                     # Description of your org repo
 ├── docs/                                       # Project documentation
 │   ├── AI-external-context/                    # External system context for AI agents
+│   │   ├── personal-info/                      # user personal information for AI agents to use as context
+│   │   │   ├── github.md                       # github info
+│   │   │   ├── npm.md                          # npm info
+│   │   │   └── pypi.md                         # pypi info
 │   │   ├── local.md                            # Local running environment info, local env which can upload to git
 │   │   └── dev.md                              # Development environment info(vercel,loki,database,hosting,ci/cd etc)
 │   ├── blogs/                                  # Blog posts and articles (best practices, tutorials, solutions)
 │   ├── development/                            # Date-based development plans (YY-MM-DD/)
-│   │   ├── template/                           # Template for development notes
+│   │   ├── templates/                          # Template for development notes
 │   │   │   └── user.md                         # Template for user requirements/tasks
-│   │   └── 26-01-09/                           # development notes for Jan 9, 2026
-│   │       └── user.md                         # user requirements/tasks for the day
-│   ├── requirements/                           # Requirements documentation, specs, and user stories
-│   │   └── feature-xx/                         # Feature-specific requirements
+│   │   │── 26-01-09/                           # development notes for Jan 9, 2026
+│   │   │   └── user.md                         # user requirements/tasks for the day
+│   │   └── TODO.md                             # TODO list for recent development tasks (short-term, tactical)
+│   ├── project/                                # all project-related documentation
+│   │   └── requirements/                       # Project requirements and specifications
+│   │       └── feature-xx/                     # Feature-specific requirements
 │   ├── rules/                                  # Repository rules and guidelines
 │   │   └── project.md                          # Project-specific rules and guidelines
 │   ├── user-guide/                             # User guides and manuals
-│   └── TODO.md                                 # Active TODO list (unfinished tasks only)
+│   └── TODO.md                                 # project level TODO list for long-term, big-picture
 ├── scripts/                                    # Repository scripts (to be implemented)
 ├── src/                                        # All source code (to be implemented)
 ├── .dockerignore                               # Docker ignore file
@@ -60,3 +66,21 @@ TODO: Add a brief project description here.
 ├── README.md                                   # Project README file (to be implemented)
 └── uv.lock                                     # Python dependency lock file (to be implemented)
 ```
+
+### Detail Description of each directory or file
+
+- `src/`: include all source code.
+- `scripts/`: include all scripts.
+
+- `docs/AI-external-context/`: include external system context for AI agents, such as personal information, local environment info, development environment info, etc.
+- `docs/development/YY-MM-DD/`: include development documentation organized by date.
+- `docs/project/`: include project-related documentation, such as architecture, design decisions, features, and meeting notes.
+
+- `.ai/summaries/YY-MM-DD/`: include AI summaries organized by date.
+- `debug/`: include temporary debugging files ONLY.
+- `TODO.md`: include ONLY unfinished tasks (remove completed items).
+- `.devcontainer/`: include Docker Compose configuration for local development environment.
+
+## Rules and Guidelines
+
+only add rules each session should flow

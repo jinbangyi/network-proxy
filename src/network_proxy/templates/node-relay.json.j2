@@ -1,0 +1,51 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "tag": "relay-in",
+      "listen": "0.0.0.0",
+      "port": {{ listen_port }},
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": {{ client_id | tojson }},
+            "alterId": 0,
+            "security": {{ security | tojson }}
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": {{ network | tojson }},
+        "security": {{ transport_security | tojson }}
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": {{ relay_tag | tojson }},
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": {{ relay_host | tojson }},
+            "port": {{ relay_port }},
+            "users": [
+              {
+                "id": {{ client_id | tojson }},
+                "alterId": 0,
+                "security": {{ security | tojson }}
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": {{ network | tojson }},
+        "security": {{ transport_security | tojson }}
+      }
+    }
+  ]
+}

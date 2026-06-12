@@ -4,4 +4,3 @@ github info: /home/coder/Documents/personal-info/github.md
   - task context 1
   - task context 2
   - task context xx
-

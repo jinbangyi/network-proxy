@@ -21,8 +21,8 @@ COPY main.py ./
 # Install dependencies using uv
 RUN uv sync --frozen --no-dev
 
-# Expose the application port
-EXPOSE 8080
+# Expose the manager API port
+EXPOSE 9001
 
 # Run the application
-CMD ["uv", "run", "python", "main.py"]
+CMD ["uv", "run", "python", "main.py", "serve"]
