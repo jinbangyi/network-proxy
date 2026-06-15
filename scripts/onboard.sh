@@ -315,11 +315,9 @@ cmd_status() {
   require_workspace
   resolve_workspace
 
-  echo "=== Manager containers ==="
+  echo "=== Containers (project: $COMPOSE_PROJECT) ==="
+  # Both compose files share the project name, so either lists every container.
   compose_manager ps 2>&1 || true
-  echo
-  echo "=== Node containers ==="
-  compose_node ps 2>&1 || true
 
   local admin_token base_url
   admin_token="$(env_value NETWORK_PROXY_ADMIN_TOKEN)"

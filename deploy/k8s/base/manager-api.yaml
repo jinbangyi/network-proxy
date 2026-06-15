@@ -39,14 +39,14 @@ spec:
                 name: manager-api-secrets
           readinessProbe:
             httpGet:
-              path: /
+              path: /dashboard
               port: http-api
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /
+              path: /dashboard
               port: http-api
             initialDelaySeconds: 30
             periodSeconds: 30
