@@ -47,6 +47,11 @@ services:
     image: tindy2013/subconverter:latest
     ports:
       - "${SUBCONVERTER_PORT:-25500}:25500"
+    volumes:
+      - ./subconverter-pref.toml:/pref.toml:ro
+      - ./subconverter-pref.toml:/base/pref.toml:ro
+      - ./subconverter-snippets-empty.toml:/base/snippets/groups.toml:ro
+      - ./subconverter-snippets-empty.toml:/base/snippets/rulesets.toml:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

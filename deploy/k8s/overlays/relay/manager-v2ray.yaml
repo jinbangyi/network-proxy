@@ -1,0 +1,101 @@
+# manager-v2ray relay: runs v2fly-core with inbound ports the manager advertises
+# to clients. Because v2ray binds a port POOL (default 20 ports starting at
+# NETWORK_PROXY_MANAGER_RELAY_PUBLIC_PORT), the only practical way to expose it
+# in Kubernetes is hostNetwork + DNS-direct host addressing. Pin this pod to a
+# specific node via the overlay's nodeSelector/affinity, and make sure both
+# manager-api and manager-v2ray land on the same node so they share the PVC
+# that holds manager-v2ray-config.json.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manager-v2ray
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-v2ray
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-proxy
+      app.kubernetes.io/component: manager-v2ray
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-proxy
+        app.kubernetes.io/component: manager-v2ray
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: default
+      # Pin to a node that has a routable public IP and whose firewall allows
+      # the relay port range. Override in your environment via nodeSelector.
+      # nodeSelector:
+      #   network-proxy.io/relay-host: "true"
+      containers:
+        - name: v2ray
+          image: v2fly/v2fly-core:latest
+          imagePullPolicy: Always
+          # The v2fly image's default entrypoint is `v2ray`; we override to
+          # drive it with the watcher script mounted from the ConfigMap.
+          command: ["/bin/sh"]
+          args: ["/opt/network-proxy/run-manager-v2ray.sh"]
+          env:
+            - name: NETWORK_PROXY_MANAGER_RELAY_CONFIG_FILE
+              value: /app/data/manager/manager-v2ray-config.json
+            - name: NETWORK_PROXY_MANAGER_RELAY_POLL_SECONDS
+              value: "2"
+            - name: NETWORK_PROXY_MANAGER_RELAY_PUBLIC_PORT
+              value: "31001"
+          securityContext:
+            capabilities:
+              add: ["NET_BIND_SERVICE"]
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+            - name: script
+              mountPath: /opt/network-proxy/run-manager-v2ray.sh
+              subPath: run-manager-v2ray.sh
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: manager-data
+        - name: script
+          configMap:
+            name: manager-v2ray-script
+            defaultMode: 0755
+---
+# Note: with hostNetwork: true the pod binds directly to the node's IP, so a
+# Kubernetes Service is mostly cosmetic -- clients connect to the node's
+# <public-ip>:<relay-port> directly. This headless Service exists only so the
+# pod is discoverable via a stable DNS name and shows up in network policies.
+apiVersion: v1
+kind: Service
+metadata:
+  name: manager-v2ray
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-v2ray
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-v2ray
+  ports:
+    - name: relay
+      port: 31001
+      targetPort: 31001

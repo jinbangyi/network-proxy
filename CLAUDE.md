@@ -20,8 +20,7 @@ TODO: Add a brief project description here.
 ├── data/                                       # persistent data storage for the workspace
 ├── code-repos/                                 # external repo references for AI agents to use as context
 │   ├── github/                                 # Public GitHub repositories
-│   │   ├── Public Github Repo1/                # Github repository, AI can create a deepresearch based on the source code
-│   │   └── Public Github Repo2/                # Github repository
+│   │   └── subconverter/                       # Utility to convert between various subscription formats, such as Clash, v2ray.
 │   ├── gitlab/                                 # Public GitLab repositories
 │   │   ├── self-host GitLab Repo1/             # GitLab repository, AI can create a deepresearch based on the source code
 │   │   └── self-host GitLab Repo2/             # GitLab repository

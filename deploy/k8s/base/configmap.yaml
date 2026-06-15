@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manager-api-config
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-api
+data:
+  # Non-sensitive configuration. Override per-environment via an overlay.
+  NETWORK_PROXY_HOST: "0.0.0.0"
+  NETWORK_PROXY_PORT: "9001"
+  NETWORK_PROXY_LOG_LEVEL: "info"
+  NETWORK_PROXY_DATABASE_URL: "sqlite:///data/network_proxy.db"
+  # Public URL clients use to reach the manager API. Patch this in your overlay
+  # to your real external hostname (e.g. https://np.example.com).
+  NETWORK_PROXY_MANAGER_PUBLIC_URL: "http://manager-api.network-proxy.svc.cluster.local:9001"
+  # Relay public address advertised to clients. Patch in the relay overlay.
+  NETWORK_PROXY_MANAGER_RELAY_PUBLIC_HOST: ""
+  NETWORK_PROXY_MANAGER_RELAY_PUBLIC_PORT: "31001"
+  NETWORK_PROXY_SUBCONVERTER_URL: "http://subconverter.network-proxy.svc.cluster.local:25500"
+  NETWORK_PROXY_HEALTH_CHECK_ENABLED: "true"
+  NETWORK_PROXY_HEALTH_CHECK_DRY_RUN: "true"
+  NETWORK_PROXY_HEALTH_CHECK_INTERVAL_SECONDS: "60"
+  NETWORK_PROXY_HEALTH_CHECK_TIMEOUT_SECONDS: "2.0"
+  NETWORK_PROXY_HEALTH_CHECK_PORT_STEP: "1"
+  NETWORK_PROXY_NODE_STALE_AFTER_SECONDS: "120"

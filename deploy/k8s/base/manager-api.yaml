@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manager-api
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # SQLite + shared PVC -> avoid two writers during rollout
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-proxy
+      app.kubernetes.io/component: manager-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-proxy
+        app.kubernetes.io/component: manager-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: manager-api
+          image: jinbangyi/network-proxy:latest
+          imagePullPolicy: Always
+          args: ["serve", "--host", "0.0.0.0", "--port", "9001"]
+          ports:
+            - name: http-api
+              containerPort: 9001
+          envFrom:
+            - configMapRef:
+                name: manager-api-config
+            - secretRef:
+                name: manager-api-secrets
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http-api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http-api
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+              subPath: manager
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: manager-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: manager-api
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-api
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-api
+  ports:
+    - name: http-api
+      port: 9001
+      targetPort: http-api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: manager-data
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

@@ -18,12 +18,13 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/network_proxy"]
-include = ["src/network_proxy/templates/*.j2"]
+include = ["src/network_proxy/templates/*.j2", "src/network_proxy/templates/*.html"]
 
 [tool.hatch.build.targets.sdist]
 include = [
 	"src/network_proxy",
 	"src/network_proxy/templates/*.j2",
+	"src/network_proxy/templates/*.html",
 	"main.py",
 	"README.md",
 ]

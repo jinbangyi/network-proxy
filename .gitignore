@@ -227,3 +227,5 @@ __marimo__/
 /node_modules/
 
 /code-repos/
+/docs/AI-external-context/personal-info/github.md
+/docs/AI-external-context/personal-info/dockerhub.md

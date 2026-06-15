@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Network Proxy Admin Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #273449;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.15);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.15);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.15);
+      --gray-bg: rgba(148, 163, 184, 0.15);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    a { color: var(--accent); }
+
+    /* ---- Login ---- */
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .login-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+    .login-card h1 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .login-card p.subtitle {
+      margin: 0 0 24px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .login-card label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .login-card input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .login-card input[type="password"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--panel-2);
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+      font-family: inherit;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-success { background: var(--green); border-color: var(--green); color: white; }
+    .btn-success:hover:not(:disabled) { filter: brightness(1.1); }
+    .btn-danger { background: var(--red); border-color: var(--red); color: white; }
+    .btn-danger:hover:not(:disabled) { filter: brightness(1.1); }
+    .btn-ghost { background: transparent; border-color: var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: var(--panel-2); }
+    .login-card .btn-primary { width: 100%; margin-top: 16px; padding: 10px; }
+
+    /* ---- Layout ---- */
+    header.topbar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header.topbar h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    header.topbar .spacer { flex: 1; }
+    header.topbar .meta { color: var(--muted); font-size: 12px; }
+    header.topbar .meta b { color: var(--text); font-weight: 500; }
+
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* ---- Tabs ---- */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: inherit;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ---- Table ---- */
+    .table-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    th {
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
+    td.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    td.id-cell { color: var(--muted); font-size: 11px; }
+    td.actions { display: flex; gap: 6px; }
+
+    /* ---- Badges ---- */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-pending   { background: var(--amber-bg); color: var(--amber); }
+    .badge-approved,
+    .badge-active,
+    .badge-healthy   { background: var(--green-bg); color: var(--green); }
+    .badge-rejected,
+    .badge-disabled,
+    .badge-unhealthy,
+    .badge-failed    { background: var(--red-bg); color: var(--red); }
+    .badge-unknown,
+    .badge-provisioning,
+    .badge-other     { background: var(--gray-bg); color: var(--muted); }
+
+    /* ---- Status banner ---- */
+    .banner {
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .banner.error { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .banner.success { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .banner.info { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+
+    .empty {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .config-cell {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+    .config-cell .ok { color: var(--green); }
+    .config-cell .pending { color: var(--amber); }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- LOGIN VIEW -->
+  <div id="loginView" class="login-wrap">
+    <div class="login-card">
+      <h1>Network Proxy Admin</h1>
+      <p class="subtitle">Enter your admin token to access the dashboard.</p>
+      <form id="loginForm">
+        <label for="tokenInput">Admin Token</label>
+        <input id="tokenInput" type="password" autocomplete="current-password" autofocus required />
+        <button type="submit" class="btn btn-primary">Sign In</button>
+        <div id="loginError" class="banner error" hidden></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboardView" hidden>
+    <header class="topbar">
+      <h1>Network Proxy Admin</h1>
+      <div class="spacer"></div>
+      <span class="meta">Last updated: <b id="lastUpdated">&mdash;</b></span>
+      <span class="meta">Fetches: <b id="fetchCount">0</b></span>
+      <button id="refreshBtn" class="btn btn-ghost">Refresh</button>
+      <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+    </header>
+
+    <main>
+      <div id="globalBanner" class="banner error" hidden></div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="joinRequests">Join Requests</button>
+        <button class="tab" data-tab="nodes">Nodes</button>
+      </div>
+
+      <!-- JOIN REQUESTS TAB -->
+      <section id="tab-joinRequests">
+        <div id="jrBanner" hidden></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Host</th>
+                <th>Region</th>
+                <th>Port</th>
+                <th>Status</th>
+                <th>Review Note</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="jrBody"></tbody>
+          </table>
+        </div>
+        <div id="jrEmpty" class="empty" hidden>No join requests.</div>
+      </section>
+
+      <!-- NODES TAB -->
+      <section id="tab-nodes" hidden>
+        <div id="nodesBanner" hidden></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Host</th>
+                <th>Region</th>
+                <th>Protocol</th>
+                <th>Port</th>
+                <th>Mode</th>
+                <th>Lifecycle</th>
+                <th>Health</th>
+                <th>Config (desired / applied)</th>
+              </tr>
+            </thead>
+            <tbody id="nodesBody"></tbody>
+          </table>
+        </div>
+        <div id="nodesEmpty" class="empty" hidden>No nodes.</div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    "use strict";
+
+    const TOKEN_KEY = "np_admin_token";
+    const REFRESH_MS = 10000;
+
+    const loginView = document.getElementById("loginView");
+    const dashboardView = document.getElementById("dashboardView");
+    const loginForm = document.getElementById("loginForm");
+    const tokenInput = document.getElementById("tokenInput");
+    const loginError = document.getElementById("loginError");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const lastUpdatedEl = document.getElementById("lastUpdated");
+    const fetchCountEl = document.getElementById("fetchCount");
+    const globalBanner = document.getElementById("globalBanner");
+    const jrBody = document.getElementById("jrBody");
+    const jrEmpty = document.getElementById("jrEmpty");
+    const jrBanner = document.getElementById("jrBanner");
+    const nodesBody = document.getElementById("nodesBody");
+    const nodesEmpty = document.getElementById("nodesEmpty");
+    const nodesBanner = document.getElementById("nodesBanner");
+
+    let token = null;
+    let activeTab = "joinRequests";
+    let fetchCount = 0;
+    let refreshTimer = null;
+    let inFlight = false;
+
+    function getToken() {
+      return sessionStorage.getItem(TOKEN_KEY);
+    }
+    function setToken(t) {
+      sessionStorage.setItem(TOKEN_KEY, t);
+    }
+    function clearToken() {
+      sessionStorage.removeItem(TOKEN_KEY);
+    }
+
+    function showLogin(message) {
+      token = null;
+      clearToken();
+      dashboardView.hidden = true;
+      loginView.hidden = false;
+      tokenInput.value = "";
+      tokenInput.focus();
+      if (message) {
+        loginError.textContent = message;
+        loginError.hidden = false;
+      } else {
+        loginError.hidden = true;
+      }
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function showDashboard() {
+      loginView.hidden = true;
+      dashboardView.hidden = false;
+      if (!refreshTimer) {
+        refreshTimer = setInterval(autoRefresh, REFRESH_MS);
+      }
+      refreshAll();
+    }
+
+    async function apiFetch(path, options) {
+      options = options || {};
+      options.headers = Object.assign({}, options.headers || {}, {
+        "Authorization": "Bearer " + token,
+      });
+      const resp = await fetch(path, options);
+      if (resp.status === 401) {
+        showLogin("Session expired. Please sign in again.");
+        throw new Error("unauthorized");
+      }
+      if (!resp.ok) {
+        let detail = resp.status + " " + resp.statusText;
+        try {
+          const body = await resp.json();
+          if (body && body.detail) detail = body.detail;
+        } catch (_) { /* ignore */ }
+        throw new Error(detail);
+      }
+      return resp;
+    }
+
+    function bumpFetchCount() {
+      fetchCount += 1;
+      fetchCountEl.textContent = String(fetchCount);
+    }
+
+    function updateLastUpdated() {
+      lastUpdatedEl.textContent = new Date().toLocaleTimeString();
+    }
+
+    function showBanner(el, type, message) {
+      if (!el) {
+        globalBanner.textContent = message;
+        globalBanner.className = "banner " + type;
+        globalBanner.hidden = false;
+        return;
+      }
+      el.textContent = message;
+      el.className = "banner " + type;
+      el.hidden = false;
+    }
+
+    function hideBanner(el) {
+      if (!el) { globalBanner.hidden = true; return; }
+      el.hidden = true;
+    }
+
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function badgeClass(status) {
+      const s = String(status || "").toLowerCase();
+      const known = new Set(["pending","approved","rejected","active","provisioning","disabled","healthy","unhealthy","unknown","failed"]);
+      if (!known.has(s)) return "badge-other";
+      if (s === "pending") return "badge-pending";
+      if (s === "approved" || s === "active" || s === "healthy") return "badge-approved";
+      if (s === "rejected" || s === "disabled" || s === "unhealthy" || s === "failed") return "badge-rejected";
+      return "badge-other";
+    }
+
+    function badge(status) {
+      const label = escapeHtml(status || "—");
+      return '<span class="badge ' + badgeClass(status) + '">' + label + '</span>';
+    }
+
+    function orDash(v) {
+      return (v === null || v === undefined || v === "") ? "—" : escapeHtml(v);
+    }
+
+    async function refreshJoinRequests() {
+      try {
+        const resp = await apiFetch("/admin/join-requests");
+        const data = await resp.json();
+        bumpFetchCount();
+        hideBanner(jrBanner);
+
+        jrBody.innerHTML = "";
+        if (!data.length) {
+          jrEmpty.hidden = false;
+          return;
+        }
+        jrEmpty.hidden = true;
+
+        const frag = document.createDocumentFragment();
+        for (const item of data) {
+          const tr = document.createElement("tr");
+          const isPending = item.status === "pending";
+          tr.innerHTML =
+            "<td>" + escapeHtml(item.node_name) + "</td>" +
+            "<td class='mono'>" + escapeHtml(item.public_host) + "</td>" +
+            "<td>" + orDash(item.region) + "</td>" +
+            "<td>" + orDash(item.requested_port) + "</td>" +
+            "<td>" + badge(item.status) + "</td>" +
+            "<td>" + orDash(item.review_note) + "</td>" +
+            "<td class='actions'></td>";
+          const actionsCell = tr.querySelector(".actions");
+          if (isPending) {
+            const approveBtn = document.createElement("button");
+            approveBtn.className = "btn btn-success";
+            approveBtn.textContent = "Approve";
+            approveBtn.addEventListener("click", () => handleApprove(item.id, approveBtn));
+            const rejectBtn = document.createElement("button");
+            rejectBtn.className = "btn btn-danger";
+            rejectBtn.textContent = "Reject";
+            rejectBtn.addEventListener("click", () => handleReject(item.id, rejectBtn));
+            actionsCell.appendChild(approveBtn);
+            actionsCell.appendChild(rejectBtn);
+          } else {
+            const span = document.createElement("span");
+            span.style.color = "var(--muted)";
+            span.textContent = "—";
+            actionsCell.appendChild(span);
+          }
+          frag.appendChild(tr);
+        }
+        jrBody.appendChild(frag);
+      } catch (err) {
+        if (err.message !== "unauthorized") {
+          showBanner(jrBanner, "error", "Failed to load join requests: " + err.message);
+        }
+      }
+    }
+
+    async function refreshNodes() {
+      try {
+        const resp = await apiFetch("/admin/nodes");
+        const data = await resp.json();
+        bumpFetchCount();
+        hideBanner(nodesBanner);
+
+        nodesBody.innerHTML = "";
+        if (!data.length) {
+          nodesEmpty.hidden = false;
+          return;
+        }
+        nodesEmpty.hidden = true;
+
+        const frag = document.createDocumentFragment();
+        for (const n of data) {
+          const tr = document.createElement("tr");
+          const desired = n.desired_config_version;
+          const applied = n.applied_config_version;
+          const inSync = desired !== null && applied !== null && applied >= desired;
+          const configCell =
+            "<span class='" + (inSync ? "ok" : "pending") + "'>" +
+            escapeHtml(String(desired)) + " / " + escapeHtml(String(applied)) +
+            "</span>";
+
+          tr.innerHTML =
+            "<td>" + escapeHtml(n.node_name) + "</td>" +
+            "<td class='mono'>" + escapeHtml(n.public_host) + "</td>" +
+            "<td>" + orDash(n.region) + "</td>" +
+            "<td>" + orDash(n.protocol) + "</td>" +
+            "<td>" + orDash(n.active_port) + "</td>" +
+            "<td>" + orDash(n.published_mode) + "</td>" +
+            "<td>" + badge(n.lifecycle_status) + "</td>" +
+            "<td>" + badge(n.health_status) + "</td>" +
+            "<td class='config-cell'>" + configCell + "</td>";
+          frag.appendChild(tr);
+        }
+        nodesBody.appendChild(frag);
+      } catch (err) {
+        if (err.message !== "unauthorized") {
+          showBanner(nodesBanner, "error", "Failed to load nodes: " + err.message);
+        }
+      }
+    }
+
+    async function refreshAll() {
+      if (inFlight) return;
+      inFlight = true;
+      updateLastUpdated();
+      await Promise.all([refreshJoinRequests(), refreshNodes()]);
+      inFlight = false;
+    }
+
+    async function autoRefresh() {
+      // Only refresh when this tab is visible.
+      if (document.hidden) return;
+      try { await refreshAll(); } catch (_) { /* surfaced in banners */ }
+    }
+
+    function withBusy(btn, fn) {
+      return async function () {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        try { await fn(); }
+        finally { btn.disabled = false; }
+      };
+    }
+
+    async function handleApprove(id, btn) {
+      try {
+        const resp = await apiFetch("/admin/join-requests/" + encodeURIComponent(id) + "/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const body = await resp.json().catch(() => ({}));
+        bumpFetchCount();
+        showBanner(jrBanner, "success",
+          "Approved " + escapeHtml(id) +
+          (body.node_id ? " → node " + escapeHtml(body.node_id) : "") + ".");
+        await refreshAll();
+      } catch (err) {
+        if (err.message !== "unauthorized") {
+          showBanner(jrBanner, "error", "Approve failed: " + err.message);
+        }
+      }
+    }
+
+    async function handleReject(id, btn) {
+      try {
+        await apiFetch("/admin/join-requests/" + encodeURIComponent(id) + "/reject", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        bumpFetchCount();
+        showBanner(jrBanner, "success", "Rejected " + escapeHtml(id) + ".");
+        await refreshAll();
+      } catch (err) {
+        if (err.message !== "unauthorized") {
+          showBanner(jrBanner, "error", "Reject failed: " + err.message);
+        }
+      }
+    }
+
+    // ---- Event wiring ----
+    loginForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      hideBanner(loginError);
+      const t = tokenInput.value.trim();
+      if (!t) return;
+      token = t;
+      // Validate against the API before persisting.
+      apiFetch("/admin/join-requests").then(async (resp) => {
+        await resp.json();
+        bumpFetchCount();
+        setToken(t);
+        showDashboard();
+      }).catch((err) => {
+        if (err.message === "unauthorized") {
+          showLogin(null); // already cleared
+          loginError.textContent = "Invalid admin token.";
+          loginError.hidden = false;
+        } else {
+          loginError.textContent = "Could not reach server: " + err.message;
+          loginError.hidden = false;
+        }
+        token = null;
+      });
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      showLogin(null);
+    });
+
+    refreshBtn.addEventListener("click", () => {
+      refreshBtn.disabled = true;
+      refreshAll().finally(() => { refreshBtn.disabled = false; });
+    });
+
+    document.querySelectorAll(".tab").forEach(function (tab) {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        activeTab = tab.dataset.tab;
+        document.getElementById("tab-joinRequests").hidden = (activeTab !== "joinRequests");
+        document.getElementById("tab-nodes").hidden = (activeTab !== "nodes");
+      });
+    });
+
+    // ---- Boot ----
+    (function boot() {
+      const stored = getToken();
+      if (stored) {
+        token = stored;
+        showDashboard();
+      } else {
+        showLogin(null);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/part-of: network-proxy

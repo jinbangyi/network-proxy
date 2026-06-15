@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Relay overlay: base (manager-api + subconverter) PLUS the manager-v2ray relay
+# pod. Point ArgoCD at this directory when you want the relay feature enabled.
+#
+# IMPORTANT operating assumptions -- review before applying:
+#   1. manager-v2ray uses hostNetwork: true and binds a port POOL on the host.
+#      Pick a node with a public IP and put a nodeSelector on the
+#      manager-v2ray Deployment (see comment in manager-v2ray.yaml).
+#   2. manager-api and manager-v2ray MUST land on the same node so the shared
+#      PVC holding manager-v2ray-config.json is consistent. Either:
+#        a) use a ReadWriteMany storage class, or
+#        b) co-schedule via podAntiAffinity required during scheduling.
+#   3. Set NETWORK_PROXY_MANAGER_RELAY_PUBLIC_HOST in manager-api-config to the
+#      public hostname / IP of that node (patch via this overlay or a secret).
+
+resources:
+  - ../../base
+  - manager-v2ray-script.yaml
+  - manager-v2ray.yaml
+
+images:
+  - name: jinbangyi/network-proxy
+    newTag: latest

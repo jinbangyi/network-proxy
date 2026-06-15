@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Common metadata injected into every resource.
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: network-proxy
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - subconverter-pref-configmap.yaml
+  - manager-api.yaml
+  - subconverter.yaml
+  - ingress.yaml
+
+# Central image reference. Overlays patch `newTag` to pin to a specific
+# SHA / semver tag produced by the CI workflow in
+# .github/workflows/docker-publish.yml.
+images:
+  - name: jinbangyi/network-proxy
+    newTag: latest

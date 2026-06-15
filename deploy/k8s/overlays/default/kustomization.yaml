@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Default overlay: manager-api + subconverter, no relay.
+# Point ArgoCD at this directory for a standard control-plane deployment.
+#
+# To pin a specific image tag produced by CI:
+#   - edit newTag below, or
+#   - use ArgoCD Image Updater with the docker.io/jinbangyi/network-proxy registry.
+
+resources:
+  - ../../base
+
+# Patch the Ingress host to your real hostname before applying.
+# Add TLS block and annotations here once you have cert-manager set up.
+patches:
+  - target:
+      kind: Ingress
+      name: manager-api
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: np.example.com
+
+images:
+  - name: jinbangyi/network-proxy
+    newTag: latest

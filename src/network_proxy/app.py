@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from network_proxy.api.admin import router as admin_router
+from network_proxy.api.dashboard import router as dashboard_router
 from network_proxy.api.node import router as node_router
 from network_proxy.api.subscribe import router as subscribe_router
 from network_proxy.db.migrations import init_database
@@ -39,4 +40,5 @@ def create_app() -> FastAPI:
     app.include_router(subscribe_router)
     app.include_router(node_router)
     app.include_router(admin_router)
+    app.include_router(dashboard_router)
     return app

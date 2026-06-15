@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: subconverter-pref
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: subconverter
+data:
+  pref.toml: |
+    # subconverter configuration
+    # Reduces generated Clash configs to exactly 3 proxy groups:
+    #   - Proxy : manual select across all nodes
+    #   - Auto  : url-test (fastest reachable node)
+    #   - Direct: DIRECT only
+    [common]
+    api_mode = "local"
+    default_external_config = ""
+    append_user_info = false
+    enable_insert = false
+    enable_cache = true
+    cache_subscription = 60
+    cache_config = 300
+    cache_ruleset = 300
+    async_cache_requests = true
+
+    [managed_config]
+    write_managed_config = false
+    admin_api = false
+    clash_rule_base = "base/general/clash.yml"
+
+    [userinfo]
+    stream_rule = "^abc,(.*)def$"
+    expire_rule = "^expire=(.*)$,remaining="
+
+    [custom]
+    custom_proxy_group = "Proxy`select`.*"
+    custom_proxy_group = "Auto`url-test`.*`http://www.gstatic.com/generate_204`300,,50"
+    custom_proxy_group = "Direct`select`DIRECT"
+
+    custom_ruleset = "rulesets/cn.list,Direct"
+    custom_ruleset = "rulesets/private.list,Direct"
+    custom_ruleset = "rulesets/applications.list,Direct"
+
+    enable_rule_generator = true
+    overwrite_local_rules = true

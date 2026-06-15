@@ -1,0 +1,25 @@
+# Sample Ingress for exposing the manager API outside the cluster.
+# Requires an Ingress controller (nginx-ingress, traefik, etc.). Patch
+# spec.rules[0].host in your overlay to your real hostname, and add TLS /
+# annotations there once you have a certificate source (cert-manager, etc.)
+# configured.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: manager-api
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: manager-api
+spec:
+  rules:
+    - host: np.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: manager-api
+                port:
+                  name: http-api

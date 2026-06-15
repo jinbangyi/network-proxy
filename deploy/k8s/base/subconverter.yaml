@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subconverter
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: subconverter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-proxy
+      app.kubernetes.io/component: subconverter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-proxy
+        app.kubernetes.io/component: subconverter
+    spec:
+      containers:
+        - name: subconverter
+          image: tindy2013/subconverter:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http-sub
+              containerPort: 25500
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: http-sub
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /version
+              port: http-sub
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: pref
+              mountPath: /pref.toml
+              subPath: pref.toml
+              readOnly: true
+      volumes:
+        - name: pref
+          configMap:
+            name: subconverter-pref
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: subconverter
+  namespace: network-proxy
+  labels:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: subconverter
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: network-proxy
+    app.kubernetes.io/component: subconverter
+  ports:
+    - name: http-sub
+      port: 25500
+      targetPort: http-sub
