@@ -129,6 +129,24 @@ env_set() {
   fi
 }
 
+# Generate a 32-char URL-safe random token from /dev/urandom, with an openssl
+# fallback. Used to seed admin/subscription tokens during init so default
+# deployments don't ship with publicly-known credentials.
+random_token() {
+  local tok=""
+  if [[ -r /dev/urandom ]]; then
+    tok="$(tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c 32 || true)"
+  fi
+  if [[ -z "$tok" ]] && command -v openssl >/dev/null 2>&1; then
+    tok="$(openssl rand -hex 16 2>/dev/null || true)"
+  fi
+  if [[ -z "$tok" ]]; then
+    # Last-resort pseudo-random fallback (should never trigger on a sane system).
+    tok="np${RANDOM}${RANDOM}${RANDOM}$$$(date +%s)"
+  fi
+  printf '%s\n' "$tok"
+}
+
 manager_port() {
   local p
   p="$(env_value NETWORK_PROXY_PORT)"
@@ -242,7 +260,12 @@ cmd_init() {
     } > "$env_file"
 
     # Apply onboarding overrides.
-    env_set "NETWORK_PROXY_MANAGER_PUBLIC_URL" "http://${PUBLIC_HOST}:$(manager_port)"
+    # NOTE: NETWORK_PROXY_MANAGER_PUBLIC_URL is intentionally NOT overridden
+    # here. The .env.example default (http://host.docker.internal:<port>) is
+    # container-reachable from the subconverter sidecar via its extra_hosts
+    # mapping. Overriding it with ${PUBLIC_HOST} (default 127.0.0.1) breaks
+    # /subscribe/clash because subconverter's 127.0.0.1 points at itself.
+    # --public-host affects the NODE's advertised host, not the manager URL.
     env_set "NETWORK_PROXY_NODE_PUBLIC_HOST" "$PUBLIC_HOST"
     env_set "NETWORK_PROXY_NODE_MANAGER_URL" "http://host.docker.internal:$(manager_port)"
     env_set "NETWORK_PROXY_NODE_PUBLISHED_PORT" "$NODE_PORT"
@@ -251,17 +274,29 @@ cmd_init() {
     log_ok "wrote $env_file"
   fi
 
-  # Seed token values: explicit flag > existing value > dev default.
+  # Seed token values: explicit flag > existing value > random.
+  # Random tokens avoid shipping default deployments with publicly-known
+  # credentials (admin-db / sub-db). The generated values are persisted to
+  # .env and printed below; the env-var fast path in api/deps.py honors them
+  # without needing `onboard.sh tokens`.
+  local admin_token_val sub_token_val
   if [[ -n "$ADMIN_TOKEN_VAL" ]]; then
-    env_set "NETWORK_PROXY_ADMIN_TOKEN" "$ADMIN_TOKEN_VAL"
-  elif [[ -z "$(env_value NETWORK_PROXY_ADMIN_TOKEN)" ]]; then
-    env_set "NETWORK_PROXY_ADMIN_TOKEN" "$DEFAULT_ADMIN_TOKEN"
+    admin_token_val="$ADMIN_TOKEN_VAL"
+  elif [[ -n "$(env_value NETWORK_PROXY_ADMIN_TOKEN)" ]]; then
+    admin_token_val="$(env_value NETWORK_PROXY_ADMIN_TOKEN)"
+  else
+    admin_token_val="$(random_token)"
   fi
+  env_set "NETWORK_PROXY_ADMIN_TOKEN" "$admin_token_val"
+
   if [[ -n "$SUB_TOKEN_VAL" ]]; then
-    env_set "NETWORK_PROXY_SUBSCRIPTION_TOKEN" "$SUB_TOKEN_VAL"
-  elif [[ -z "$(env_value NETWORK_PROXY_SUBSCRIPTION_TOKEN)" ]]; then
-    env_set "NETWORK_PROXY_SUBSCRIPTION_TOKEN" "$DEFAULT_SUB_TOKEN"
+    sub_token_val="$SUB_TOKEN_VAL"
+  elif [[ -n "$(env_value NETWORK_PROXY_SUBSCRIPTION_TOKEN)" ]]; then
+    sub_token_val="$(env_value NETWORK_PROXY_SUBSCRIPTION_TOKEN)"
+  else
+    sub_token_val="$(random_token)"
   fi
+  env_set "NETWORK_PROXY_SUBSCRIPTION_TOKEN" "$sub_token_val"
 
   log_info "pre-pulling images (may take a while on first run)..."
   compose_manager pull --ignore-pull-failures 2>&1 | sed 's/^/  /' || true
@@ -271,6 +306,10 @@ cmd_init() {
 
 $(log_ok "workspace ready at $WORKSPACE")
 
+Generated tokens (saved to $env_file):
+  Admin token:        $admin_token_val
+  Subscription token: $sub_token_val
+
 Layout:
   $WORKSPACE/.env
   $WORKSPACE/data/manager/   (SQLite DB lives here)
@@ -278,8 +317,10 @@ Layout:
 
 Next steps:
   $0 start  -w $WORKSPACE
-  $0 tokens -w $WORKSPACE
   $0 approve -w $WORKSPACE
+
+Optional (only if you want DB-backed tokens instead of the env-var fast path):
+  $0 tokens -w $WORKSPACE
 EOF
 }
 
@@ -624,7 +665,7 @@ usage_init() {
   cat <<'EOF'
 init options:
   -w, --workspace <path>    Workspace root (default: /opt/network-proxy)
-  --public-host <host>      Host advertised by manager + node (default: 127.0.0.1)
+  --public-host <host>      Host advertised by the node for client connections (default: 127.0.0.1)
   --node-port <port>        Node published + requested port (default: 21001)
   --admin-token <token>     Seed admin token value (default: admin-db)
   --sub-token <token>       Seed subscription token value (default: sub-db)
