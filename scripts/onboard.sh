@@ -21,6 +21,11 @@ readonly DEFAULT_MANAGER_PORT="9001"
 readonly DEFAULT_ADMIN_TOKEN="admin-db"
 readonly DEFAULT_SUB_TOKEN="sub-db"
 readonly COMPOSE_PROJECT="network-proxy"
+# UID/GID hardcoded in Dockerfile (USER app, useradd --uid 1000 --gid 1000).
+# Bind-mounted data dirs must be writable by this UID/GID or runtime writes
+# (SQLite, v2ray state) fail.
+readonly CONTAINER_UID=1000
+readonly CONTAINER_GID=1000
 
 readonly SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -191,7 +196,9 @@ cmd_init() {
     fi
   fi
 
-  # If we ran as root with sudo, hand the workspace over to the invoking user.
+  # If we ran as root with sudo, hand the workspace over to the invoking user
+  # so they can read/edit .env without sudo. The container-mounted data subdirs
+  # are chowned to the container UID/GID separately below.
   if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
     local target_user="${SUDO_USER:-${USER:-}}"
     if [[ -n "$target_user" && "$target_user" != "root" ]]; then
@@ -202,6 +209,22 @@ cmd_init() {
   resolve_workspace
 
   mkdir -p "$WORKSPACE/data/manager" "$WORKSPACE/data/node" "$WORKSPACE/run"
+
+  # Container-mounted data dirs must be writable by the container UID/GID
+  # (hardcoded in Dockerfile as 1000:1000). SQLite and v2ray state writes fail
+  # at runtime otherwise (e.g. sqlite3.OperationalError: unable to open database
+  # file).
+  local current_uid="${EUID:-$(id -u)}"
+  if [[ "$current_uid" -eq 0 ]]; then
+    chown -R "${CONTAINER_UID}:${CONTAINER_GID}" \
+      "$WORKSPACE/data/manager" "$WORKSPACE/data/node" 2>/dev/null \
+      || log_warn "could not chown data dirs to ${CONTAINER_UID}:${CONTAINER_GID}"
+    log_ok "data dirs owned by ${CONTAINER_UID}:${CONTAINER_GID} (container user)"
+  elif [[ "$current_uid" -ne "$CONTAINER_UID" ]]; then
+    log_warn "running as UID $current_uid; containers expect UID $CONTAINER_UID"
+    log_warn "if startup fails with 'unable to open database file', run:"
+    log_warn "  sudo chown -R ${CONTAINER_UID}:${CONTAINER_GID} \"$WORKSPACE/data/manager\" \"$WORKSPACE/data/node\""
+  fi
 
   local env_file
   env_file="$(workspace_env)"
