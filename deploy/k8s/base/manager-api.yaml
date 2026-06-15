@@ -28,7 +28,7 @@ spec:
         - name: manager-api
           image: jinbangyi/network-proxy:latest
           imagePullPolicy: Always
-          args: ["serve", "--host", "0.0.0.0", "--port", "9001"]
+          command: ["uv", "run", "python", "main.py", "serve", "--host", "0.0.0.0", "--port", "9001"]
           ports:
             - name: http-api
               containerPort: 9001
