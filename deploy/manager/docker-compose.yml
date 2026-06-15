@@ -13,6 +13,13 @@ services:
       NETWORK_PROXY_MANAGER_RELAY_PUBLIC_HOST: ${NETWORK_PROXY_MANAGER_RELAY_PUBLIC_HOST:-}
       NETWORK_PROXY_MANAGER_RELAY_PUBLIC_PORT: ${NETWORK_PROXY_MANAGER_RELAY_PUBLIC_PORT:-31001}
       NETWORK_PROXY_SUBCONVERTER_URL: ${NETWORK_PROXY_SUBCONVERTER_URL:-http://subconverter:25500}
+      # Seed admin/subscription tokens. When set (onboard.sh init writes
+      # admin-db / sub-db by default), the API accepts them directly via the
+      # env-var fast path in api/deps.py — no DB seeding required for first
+      # login. Empty default preserves DB-only auth for deployments that prefer
+      # `create-admin-token` / `create-subscription-token`.
+      NETWORK_PROXY_ADMIN_TOKEN: ${NETWORK_PROXY_ADMIN_TOKEN:-}
+      NETWORK_PROXY_SUBSCRIPTION_TOKEN: ${NETWORK_PROXY_SUBSCRIPTION_TOKEN:-}
       NETWORK_PROXY_HEALTH_CHECK_ENABLED: ${NETWORK_PROXY_HEALTH_CHECK_ENABLED:-true}
       NETWORK_PROXY_HEALTH_CHECK_DRY_RUN: ${NETWORK_PROXY_HEALTH_CHECK_DRY_RUN:-false}
       NETWORK_PROXY_HEALTH_CHECK_INTERVAL_SECONDS: ${NETWORK_PROXY_HEALTH_CHECK_INTERVAL_SECONDS:-60}
