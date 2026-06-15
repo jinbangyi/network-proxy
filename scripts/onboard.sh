@@ -261,25 +261,31 @@ EOF
 }
 
 cmd_start() {
+  local target=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -w|--workspace) WORKSPACE="$2"; shift 2 ;;
       -h|--help)      usage_start; return 0 ;;
-      *)              die "start: unknown option: $1" ;;
+      manager|node|all) target="$1"; shift ;;
+      *)              die "start: unknown option: $1 (expected: manager | node | all)" ;;
     esac
   done
+  [[ -n "$target" ]] || target="all"
 
   check_prereqs
   require_workspace
   resolve_workspace
 
-  log_info "building + starting manager stack (manager-api + subconverter)..."
-  compose_manager up --build -d
+  if [[ "$target" == "manager" || "$target" == "all" ]]; then
+    log_info "building + starting manager stack (manager-api + subconverter)..."
+    compose_manager up --build -d
+    wait_for_http "http://127.0.0.1:$(manager_port)/docs" 90
+  fi
 
-  wait_for_http "http://127.0.0.1:$(manager_port)/docs" 90
-
-  log_info "building + starting node stack (node-agent + node-v2ray)..."
-  compose_node up --build -d
+  if [[ "$target" == "node" || "$target" == "all" ]]; then
+    log_info "building + starting node stack (node-agent + node-v2ray)..."
+    compose_node up --build -d
+  fi
 
   print_summary
 }
@@ -564,6 +570,7 @@ Single-entry onboarding for the network-proxy stack.
 Commands:
   init     Create workspace, generate .env, pre-pull images
   start    Start manager + subconverter + node agent + node v2ray
+           (accepts a target: 'manager', 'node', or 'all'; default 'all')
   tokens   Create admin + subscription tokens in the running manager
   approve  Approve a pending node join request
   status   Show container status + join requests + published nodes
@@ -577,6 +584,8 @@ Common options:
 Examples:
   sudo $0 init
   $0 start
+  $0 start node
+  $0 start manager
   $0 tokens
   $0 approve
   $0 status
@@ -604,6 +613,15 @@ usage_start() {
   cat <<'EOF'
 start options:
   -w, --workspace <path>    Workspace root to start
+  [target]                  manager | node | all (default: all)
+                            - manager: manager-api + subconverter only
+                            - node:    node-agent + node-v2ray only
+                            - all:     both stacks
+
+Examples:
+  $0 start -w /opt/network-proxy            # start everything
+  $0 start node -w /opt/network-proxy       # start node stack only
+  $0 start manager -w /opt/network-proxy    # start manager stack only
 EOF
 }
 

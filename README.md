@@ -61,6 +61,35 @@ Initial deployment files live under `deploy/`.
 - `deploy/node/run-node-v2ray.sh`
   watches the rendered config and restarts the node-side V2Ray runtime on marker changes
 
+### Quickstart with `onboard.sh`
+
+`scripts/onboard.sh` wraps both compose stacks and drives the full lifecycle:
+workspace init under `/opt/network-proxy`, manager + node start, token
+creation, join-request approval, and status. Run `scripts/onboard.sh --help`
+for subcommands. This is the fastest path to a running stack on a VM or
+localhost.
+
+### Kubernetes
+
+Kustomize manifests for ArgoCD / GitOps live under `deploy/k8s/`. Two
+overlays ship out of the box: `default` (manager-api + subconverter) and
+`relay` (adds the manager-v2ray hostNetwork relay pod). See
+[`deploy/k8s/README.md`](deploy/k8s/README.md) for the full guide including
+required GitHub secrets, an ArgoCD Application template, and a
+troubleshooting section covering the pod-startup pitfalls we hit.
+
+### Container images
+
+`.github/workflows/docker-publish.yml` builds `linux/amd64` + `linux/arm64`
+images on every push to `master` and every `v*` tag, and pushes them to
+`docker.io/jinbangyi/network-proxy`. Tags produced:
+
+- `latest`, `master`, `sha-<short>` on master pushes
+- `1.2.3`, `1.2`, `1`, `latest` on `v1.2.3` tags
+
+The image is built to run as non-root UID/GID 1000. The k8s manifests assume
+this; the docker-compose stacks run as root by default.
+
 Manager stack example:
 
 ```bash

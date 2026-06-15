@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
@@ -53,3 +54,8 @@ async def subscribe_clash(
         return await service.get_clash_subscription(_build_subscribe_url(request))
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"subconverter unreachable: {exc}",
+        ) from exc

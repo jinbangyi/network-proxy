@@ -32,10 +32,22 @@ deploy/k8s/
 
 ## Prerequisites on the cluster
 
-1. A storage class that can bind a 1 GiB `ReadWriteOnce` PVC for SQLite + relay
-   config JSON. (Both relay pods land on the same node, so RWO is fine.)
+1. A storage class that can bind a `ReadWriteOnce` PVC for SQLite + relay
+   config JSON. The base asks for 1 GiB; the `default` overlay patches it to
+   10 GiB with `storageClassName: standard` -- adjust both in your overlay.
+   (Both relay pods land on the same node, so RWO is fine.)
 2. An Ingress controller if you want to expose `manager-api` over HTTP(S).
 3. cert-manager (optional) if you want TLS on the Ingress.
+
+## Container image
+
+The Deployment references `docker.io/jinbangyi/network-proxy:latest`, built by
+`.github/workflows/docker-publish.yml` on every push to `master` and every `v*`
+tag. The image is built to run as non-root UID/GID 1000 (see `Dockerfile`):
+the uv venv and cache live under `/app` and are owned by that user, matching
+the pod `securityContext.runAsUser: 1000` / `fsGroup: 1000` in
+`base/manager-api.yaml`. Don't lower the security context to root -- the
+image isn't laid out for it and you'd hit write errors from uv.
 
 ## Required GitHub secrets (for the CI that builds the image)
 
@@ -138,7 +150,9 @@ kubectl apply -k deploy/k8s/overlays/default
 # Check
 kubectl -n network-proxy get pods,svc,ingress
 kubectl -n network-proxy port-forward svc/manager-api 9001:9001
-curl http://127.0.0.1:9001/
+# NOTE: GET / requires a subscription token (returns 401 otherwise).
+# Use /dashboard for an unauthenticated 200.
+curl http://127.0.0.1:9001/dashboard
 ```
 
 ## Notes on the relay overlay
@@ -155,3 +169,60 @@ given v2ray's dynamic port pool. Consequences:
   `requiredDuringSchedulingIgnoredDuringExecution`.
 - The Ingress / Service doesn't cover the relay ports -- they must be allowed
   through the node's firewall / cloud security group directly.
+
+## Non-k8s alternative
+
+If you just want to run the stack on a VM or localhost with docker compose,
+use `scripts/onboard.sh` from the repo root. It wraps
+`deploy/manager/docker-compose.yml` and `deploy/node/docker-compose.yml`,
+handles workspace setup under `/opt/network-proxy` by default, and walks
+through init / start / token creation / approve / status. See
+`scripts/onboard.sh --help` for subcommands.
+
+## Troubleshooting
+
+These are the failures we hit while shaking down the manifests. Symptoms and
+fixes recorded here so the next operator doesn't repeat the debug.
+
+### `exec: "--host": executable file not found in $PATH`
+
+**Cause:** container spec used `args:` instead of `command:`. With
+`args:`-only, the kubelet keeps the image's `CMD ["uv","run","python","main.py","serve"]`
+as the entrypoint and appends your args after it, producing a garbled command
+line. This is the K8s vs docker-compose semantic gap -- docker-compose
+`command:` replaces the whole CMD, K8s `args:` only replaces the args half.
+
+**Fix:** the base manifest uses `command:` (full override). Don't migrate it
+back to `args:`-only.
+
+### `Failed to initialize cache at .uv-cache ... Permission denied`
+
+**Cause:** pod runs as UID 1000 but the image's `/app/.uv-cache` (and
+`.venv`) were created during `docker build` as root.
+
+**Fix:** the Dockerfile creates a non-root `app` user (UID/GID 1000) and
+switches to `USER app` before `uv sync`, so the venv and cache are owned by
+the same UID that runs at runtime. Don't strip the `securityContext` -- the
+image isn't laid out for root execution.
+
+### `Readiness probe failed: HTTP probe failed with statuscode: 401`
+
+**Cause:** the probe path was `GET /`, but in this app `/` is the
+subscription endpoint and requires a `?token=` query param. Without a token
+it returns 401.
+
+**Fix:** both probes hit `GET /dashboard` instead, which is the only
+unauthenticated 200-OK route in the codebase. If you add a dedicated
+`GET /healthz` endpoint later, switch the probes to that.
+
+### SQLite write errors on the PVC after the above fixes
+
+If `fsGroup: 1000` doesn't propagate to a `subPath` mount on your storage
+class (known to be inconsistent across CSI drivers), the next failure mode
+is the SQLite DB at `/app/data/network_proxy.db` being unwritable. Workaround
+options:
+
+- Drop `subPath: manager` and mount the PVC root at `/app/data`.
+- Add an `initContainer` that `chown -R 1000:1000 /app/data` before the
+  manager container starts.
+- Switch to a storage class that honours `fsGroup` on subPath mounts.
