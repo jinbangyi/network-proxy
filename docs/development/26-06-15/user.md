@@ -12,5 +12,4 @@
   - default workspace: /opt/network-proxy
   - default database: sqlite, stored in workspace/data/network_proxy.db
 
-- [ ] the subscription should include directly proxy and relay proxy. the relay should node start connection to manager, not manager to node.
 
