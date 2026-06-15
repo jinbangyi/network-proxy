@@ -13,6 +13,21 @@ class NodeAgent:
     def __init__(self, settings: Settings, api_client: Any | None = None):
         self.settings = settings
         self.api_client = api_client
+        self._resolved_public_host: str | None = None
+
+    def _get_public_host(self) -> str:
+        if self.settings.node_public_host and self.settings.node_public_host != "127.0.0.1":
+            return self.settings.node_public_host
+        if self._resolved_public_host is not None:
+            return self._resolved_public_host
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get("https://ifconfig.me", headers={"User-Agent": "curl/7.88"})
+                response.raise_for_status()
+                self._resolved_public_host = response.text.strip()
+        except httpx.HTTPError:
+            self._resolved_public_host = self.settings.node_public_host
+        return self._resolved_public_host
 
     def load_state(self) -> dict[str, Any]:
         path = Path(self.settings.node_state_file)
@@ -72,7 +87,7 @@ class NodeAgent:
             "/join-requests",
             json={
                 "node_name": self.settings.node_name,
-                "public_host": self.settings.node_public_host,
+                "public_host": self._get_public_host(),
                 "region": self.settings.node_region,
                 "requested_protocols": self.settings.get_requested_protocols(),
                 "requested_port": self.settings.node_requested_port,
@@ -127,7 +142,7 @@ class NodeAgent:
             headers={"Authorization": f"Bearer {node_token}"},
             json={
                 "applied_config_version": desired_state.get("desired_config_version"),
-                "direct_effective_host": direct_config.get("host"),
+                "direct_effective_host": self._get_public_host(),
                 "direct_effective_port": direct_config.get("port"),
                 "relay_effective_host": relay_config.get("host"),
                 "relay_effective_port": relay_config.get("port"),
@@ -157,7 +172,18 @@ class NodeAgent:
 
         desired_state = self.fetch_desired_state(state["node_id"], state["node_token"])
         self.save_desired_state(desired_state)
-        runtime_state = self.apply_runtime_config(desired_state)
+
+        desired_version = desired_state.get("desired_config_version")
+        if (
+            state.get("desired_config_version") != desired_version
+            or "runtime" not in state
+        ):
+            runtime_state = self.apply_runtime_config(desired_state)
+            state["desired_config_version"] = desired_version
+            state["runtime"] = runtime_state
+        else:
+            runtime_state = state["runtime"]
+
         self.send_heartbeat(state["node_id"], state["node_token"])
         self.send_report(
             state["node_id"],
@@ -166,7 +192,5 @@ class NodeAgent:
             runtime_metadata=runtime_state,
         )
         state["status"] = "active"
-        state["desired_config_version"] = desired_state.get("desired_config_version")
-        state["runtime"] = runtime_state
         self.save_state(state)
         return state

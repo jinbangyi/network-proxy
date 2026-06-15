@@ -1,0 +1,41 @@
+services:
+  client-v2ray:
+    image: v2fly/v2fly-core:latest
+    entrypoint: ["/bin/sh"]
+    command: ["/opt/network-proxy/run-client-v2ray.sh"]
+    environment:
+      NETWORK_PROXY_CLIENT_RUNTIME_CONFIG_FILE: /app/data/client-v2ray-config.json
+      NETWORK_PROXY_CLIENT_RELOAD_MARKER_FILE: /app/data/client-v2ray-reload.marker
+      NETWORK_PROXY_CLIENT_V2RAY_POLL_SECONDS: ${NETWORK_PROXY_CLIENT_V2RAY_POLL_SECONDS:-2}
+    volumes:
+      - ~/data/client:/app/data
+      - ./run-client-v2ray.sh:/opt/network-proxy/run-client-v2ray.sh:ro
+    ports:
+      - "${NETWORK_PROXY_CLIENT_SOCKS_PORT:-10808}:${NETWORK_PROXY_CLIENT_SOCKS_PORT:-10808}"
+      - "${NETWORK_PROXY_CLIENT_HTTP_PORT:-10809}:${NETWORK_PROXY_CLIENT_HTTP_PORT:-10809}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  client-agent:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["uv", "run", "python", "src/client_agent.py", "--interval", "${NETWORK_PROXY_CLIENT_INTERVAL:-10}"]
+    environment:
+      NETWORK_PROXY_CLIENT_MANAGER_URL: ${NETWORK_PROXY_CLIENT_MANAGER_URL:-http://host.docker.internal:9001}
+      NETWORK_PROXY_CLIENT_SUBSCRIPTION_TOKEN: ${NETWORK_PROXY_CLIENT_SUBSCRIPTION_TOKEN:-sub-db}
+      NETWORK_PROXY_CLIENT_SOCKS_PORT: ${NETWORK_PROXY_CLIENT_SOCKS_PORT:-10808}
+      NETWORK_PROXY_CLIENT_OVERRIDE_HOST: ${NETWORK_PROXY_CLIENT_OVERRIDE_HOST:-host.docker.internal}
+      NETWORK_PROXY_CLIENT_OVERRIDE_PORT: ${NETWORK_PROXY_CLIENT_OVERRIDE_PORT:-21001}
+      NETWORK_PROXY_CLIENT_NODE_NAME: ${NETWORK_PROXY_CLIENT_NODE_NAME:-}
+      NETWORK_PROXY_CLIENT_STATE_FILE: /app/data/client-agent-state.json
+      NETWORK_PROXY_CLIENT_RUNTIME_CONFIG_FILE: /app/data/client-v2ray-config.json
+      NETWORK_PROXY_CLIENT_RELOAD_MARKER_FILE: /app/data/client-v2ray-reload.marker
+    volumes:
+      - ~/data/client:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - client-v2ray
+    restart: unless-stopped

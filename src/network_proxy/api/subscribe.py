@@ -11,9 +11,16 @@ router = APIRouter()
 
 def _build_subscribe_url(request: Request) -> str:
     settings = get_settings()
-    if settings.manager_public_url:
-        return f"{settings.manager_public_url.rstrip('/')}/subscribe"
-    return str(request.url_for("subscribe"))
+    base = (
+        f"{settings.manager_public_url.rstrip('/')}/subscribe"
+        if settings.manager_public_url
+        else str(request.url_for("subscribe"))
+    )
+    token = request.query_params.get("token")
+    if token:
+        sep = "&" if "?" in base else "?"
+        base = f"{base}{sep}token={token}"
+    return base
 
 
 @router.get("/", response_class=PlainTextResponse, include_in_schema=False)

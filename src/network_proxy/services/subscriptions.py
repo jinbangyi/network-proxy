@@ -26,6 +26,7 @@ class SubscriptionService:
         statement = select(Node).where(
             Node.approval_status == "approved",
             Node.lifecycle_status != "disabled",
+            Node.health_status == "healthy",
             Node.applied_config_version >= Node.desired_config_version,
         )
         nodes = list(self.session.scalars(statement))

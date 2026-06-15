@@ -47,10 +47,23 @@ class Settings(BaseSettings):
     node_apply_command: str | None = None
     node_validate_command: str | None = None
     health_check_enabled: bool = False
+    health_check_dry_run: bool = False
     health_check_interval_seconds: int = 60
     health_check_timeout_seconds: float = 2.0
     health_check_port_step: int = 1
     node_stale_after_seconds: int = 120
+
+    client_manager_url: str = "http://127.0.0.1:9001"
+    client_subscription_token: str = "sub-db"
+    client_socks_port: int = 10808
+    client_http_port: int = 10809
+    client_override_host: str | None = None
+    client_override_port: int | None = None
+    client_node_name: str | None = None
+    client_runtime_config_file: str = "data/client-v2ray-config.json"
+    client_reload_marker_file: str = "data/client-v2ray-reload.marker"
+    client_state_file: str = "data/client-agent-state.json"
+    client_interval: int = 10
 
     def get_bootstrap_links(self) -> list[str]:
         raw_value = self.bootstrap_subscription_links

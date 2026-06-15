@@ -62,6 +62,23 @@ class HealthService:
                 detail="direct probe succeeded",
             )
 
+        if self.settings.health_check_dry_run:
+            node.health_status = "degraded"
+            self.session.add(
+                HealthEvent(
+                    node_id=node.id,
+                    attempt_no=0,
+                    probe_scope="direct",
+                    probe_result="failure",
+                    old_port=node.active_port,
+                    new_port=node.active_port,
+                    action="dry_run_skip",
+                    detail="direct probe failed; dry run mode skipped remediation",
+                )
+            )
+            self.session.add(node)
+            return "dry_run_skip"
+
         node.health_status = "degraded"
         node.retry_count += 1
         old_port = node.active_port
@@ -106,6 +123,23 @@ class HealthService:
                 new_port=relay_port,
                 detail="relay probe succeeded",
             )
+
+        if self.settings.health_check_dry_run:
+            node.health_status = "degraded"
+            self.session.add(
+                HealthEvent(
+                    node_id=node.id,
+                    attempt_no=0,
+                    probe_scope="relay",
+                    probe_result="failure",
+                    old_port=relay_port,
+                    new_port=relay_port,
+                    action="dry_run_skip",
+                    detail="relay probe failed; dry run mode skipped remediation",
+                )
+            )
+            self.session.add(node)
+            return "dry_run_skip"
 
         node.health_status = "degraded"
         return self._disable_node(
