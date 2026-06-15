@@ -46,7 +46,7 @@ spec:
               memory: 256Mi
           volumeMounts:
             - name: pref
-              mountPath: /pref.toml
+              mountPath: /base/pref.toml
               subPath: pref.toml
               readOnly: true
       volumes:

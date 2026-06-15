@@ -118,8 +118,9 @@ rule = ["[]DIRECT"]
 disable_udp = false
 
 # ############################## Rulesets ##############################
-# Minimal rule set referencing ONLY our 3 groups (Proxy / Direct).
-# REJECT is built-in to Clash and always available.
+# Local ruleset files (ship inside the image at /base/rules/...).
+# Container has no outbound internet, so we can't use remote URLs.
+# Mapped to ONLY our 3 groups: Proxy / Direct. (REJECT is Clash built-in.)
 
 [ruleset]
 enabled = true
@@ -128,24 +129,43 @@ update_ruleset_on_request = false
 
 [[rulesets]]
 group = "Direct"
-ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/private.txt"
-type = "surge-ruleset"
-interval = 86400
+ruleset = "rules/LocalAreaNetwork.list"
 
 [[rulesets]]
 group = "Direct"
-ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt"
-type = "surge-ruleset"
-interval = 86400
+ruleset = "rules/DivineEngine/Surge/Ruleset/Unbreak.list"
+
+[[rulesets]]
+group = "Proxy"
+ruleset = "rules/DivineEngine/Surge/Ruleset/StreamingMedia/Video/Netflix.list"
+
+[[rulesets]]
+group = "Proxy"
+ruleset = "rules/DivineEngine/Surge/Ruleset/Extra/Telegram/Telegram.list"
+
+[[rulesets]]
+group = "Proxy"
+ruleset = "rules/DivineEngine/Surge/Ruleset/Global.list"
 
 [[rulesets]]
 group = "Direct"
-ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/telegramcidr.txt"
-type = "surge-ruleset"
-interval = 86400
+ruleset = "rules/DivineEngine/Surge/Ruleset/China.list"
+
+[[rulesets]]
+group = "Direct"
+ruleset = "rules/NobyDa/Surge/Download.list"
+
+[[rulesets]]
+group = "Direct"
+ruleset = "[]GEOIP,CN"
+
+[[rulesets]]
+group = "Proxy"
+ruleset = "[]MATCH"
 
 [custom]
-# Final catch-all group for the trailing MATCH rule that subconverter appends.
+enable_rule_generator = true
+overwrite_original_rules = true
 clash_rule_base = "base/simple_base.yml"
 
 [template]

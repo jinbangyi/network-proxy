@@ -21,6 +21,28 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: np.example.com
+  # replace secret
+  - target:
+      kind: Secret
+      name: manager-api-secrets
+    patch: |-
+      - op: replace
+        path: /stringData/NETWORK_PROXY_ADMIN_TOKEN
+        value: "change-me-admin-token"
+      - op: replace
+        path: /stringData/NETWORK_PROXY_SUBSCRIPTION_TOKEN
+        value: "change-me-user-token"
+  # add pvc class name
+  - target:
+      kind: PersistentVolumeClaim
+      name: manager-data
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: "standard"
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: "10Gi"
 
 images:
   - name: jinbangyi/network-proxy
